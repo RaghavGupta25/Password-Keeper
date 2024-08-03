@@ -1,9 +1,9 @@
 import { IsEmail, IsStrongPassword } from 'class-validator';
-export class signInDto {
+export class SignInDto {
   @IsEmail()
   email: string;
 
-  @IsStrongPassword()
+  //@IsStrongPassword()
   password: string;
 
   confirmPassword: string;

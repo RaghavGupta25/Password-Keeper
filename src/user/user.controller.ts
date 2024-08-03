@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 
 import { UserService } from './user.service';
-import { signInDto } from './dto/signIn.dto';
+import { SignInDto } from './dto/signIn.dto';
 import { Request, Response } from 'express';
 import { Users } from '@prisma/client';
 
@@ -17,7 +17,7 @@ export class UserController {
 
   @Post('signup')
   async signUp(
-    @Body() newUser: signInDto,
+    @Body() newUser: SignInDto,
     @Res() res: Response,
   ): Promise<void> {
     try {
@@ -25,7 +25,7 @@ export class UserController {
         await this.userService.singUp(newUser);
 
       delete user.password;
-
+      delete user.confirmPassword;
       res.cookie('jwt', token, { httpOnly: true });
 
       res.status(201).send({ user: user });
@@ -35,12 +35,13 @@ export class UserController {
   }
 
   @Post('signin')
-  async signIn(@Body() credentials: signInDto, @Res() res: Response) {
+  async signIn(@Body() credentials: SignInDto, @Res() res: Response) {
     try {
       const { user, token }: { user: Partial<Users>; token: string } =
         await this.userService.signIn(credentials);
 
       delete user.password;
+      delete user.confirmPassword;
 
       res.cookie('jwt', token, { httpOnly: true });
 

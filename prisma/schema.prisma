@@ -35,8 +35,8 @@ model Passwords{
 model Cards{
   id String @id @default(uuid())
   userId String
-  cardNumber Int
-  cvv Int
+  cardNumber String
+  cvv String
   cardHolder String
   expiry String
   bank String

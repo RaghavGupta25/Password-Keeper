@@ -1,6 +1,6 @@
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, isNotEmpty } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class loginInfoDto {
+export class LoginInfoDto {
   @IsString()
   @IsOptional()
   username: string;
@@ -13,13 +13,13 @@ export class loginInfoDto {
   @IsOptional()
   website: string;
 
-  @IsInt()
+  @IsString()
   @IsOptional()
-  cardNumber: number;
+  cardNumber: string;
 
-  @IsInt()
+  @IsString()
   @IsOptional()
-  cvv: number;
+  cvv: string;
 
   @IsString()
   @IsOptional()

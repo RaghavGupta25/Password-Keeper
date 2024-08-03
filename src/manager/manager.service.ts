@@ -4,16 +4,19 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { loginInfoDto } from 'src/manager/dto/loginInfo.dto';
+import { LoginInfoDto } from 'src/manager/dto/loginInfo.dto';
 import { JwtPayload } from 'src/contracts/jwt-payload/jwt-payload.interface';
-import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import { encrypt } from './utils/encrypt';
+import { decrypt } from './utils/decrypt';
+
 
 @Injectable()
 export class ManagerService {
   constructor(private readonly prisma: PrismaService) {}
-  async createLogin(loginInfo: loginInfoDto, user: JwtPayload): Promise<any> {
+  
+  async createLogin(loginInfo: LoginInfoDto, user: JwtPayload): Promise<any> {
     const userId = user.sub;
-    const encryptedPassword: string = await this.encryptData(
+    const encryptedPassword: string = await encrypt(
       loginInfo.password,
     );
     const newLogin = await this.prisma.passwords.create({
@@ -28,12 +31,12 @@ export class ManagerService {
     return newLogin;
   }
 
-  async createCard(loginInfo: loginInfoDto, user: JwtPayload): Promise<any> {
+  async createCard(loginInfo: LoginInfoDto, user: JwtPayload): Promise<any> {
     const userId = user.sub;
-    const encryptedCardNumber: number = await this.encryptCardData(
+    const encryptedCardNumber: string = await encrypt(
       loginInfo.cardNumber,
     );
-    const encryptedCvv: number = await this.encryptCardData(loginInfo.cvv);
+    const encryptedCvv: string = await encrypt(loginInfo.cvv);
     const newCard = await this.prisma.cards.create({
       data: {
         userId,
@@ -48,7 +51,7 @@ export class ManagerService {
   }
 
   async updateLogin(
-    loginInfo: loginInfoDto,
+    loginInfo: LoginInfoDto,
     id: string,
     user: JwtPayload,
   ): Promise<any> {
@@ -70,7 +73,7 @@ export class ManagerService {
     };
 
     if (loginInfo.password) {
-      const encryptedPassword = await this.encryptData(loginInfo.password);
+      const encryptedPassword = await encrypt(loginInfo.password);
       updateData.password = encryptedPassword;
     } else {
       updateData.password = loginExist.password;
@@ -85,7 +88,7 @@ export class ManagerService {
   }
 
   async updateCardInfo(
-    loginInfo: loginInfoDto,
+    loginInfo: LoginInfoDto,
     id: string,
     user: JwtPayload,
   ): Promise<any> {
@@ -105,12 +108,12 @@ export class ManagerService {
     };
 
     if (loginInfo.cardNumber) {
-      updateData.cardNumber = await this.encryptCardData(loginInfo.cardNumber);
+      updateData.cardNumber = await encrypt(loginInfo.cardNumber);
     } else {
       updateData.cardNumber = cardExist.cardNumber;
     }
     if (loginInfo.cvv) {
-      updateData.cvv = await this.encryptCardData(loginInfo.cvv);
+      updateData.cvv = await encrypt(loginInfo.cvv);
     } else {
       updateData.cvv = cardExist.cvv;
     }
@@ -123,7 +126,7 @@ export class ManagerService {
     return updatedCard;
   }
 
-  async deleteLogin(id: string, user: JwtPayload): Promise<void> {
+  async deleteLogin(id: string, user: JwtPayload): Promise<string> {
     const userId = user.sub;
     const login = await this.prisma.passwords.findUnique({ where: { id } });
     if (!login) throw new NotFoundException();
@@ -132,9 +135,10 @@ export class ManagerService {
         'you are not allowed to delete this as it does not belong to you',
       );
     await this.prisma.passwords.delete({ where: { id } });
+    return "Deleted the Login Details";
   }
 
-  async deleteCard(id: string, user: JwtPayload): Promise<void> {
+  async deleteCard(id: string, user: JwtPayload): Promise<string> {
     const userId = user.sub;
     const card = await this.prisma.cards.findUnique({ where: { id } });
     if (!card) throw new NotFoundException();
@@ -143,6 +147,7 @@ export class ManagerService {
         'you are not allowed to delete this as it does not belong to you',
       );
     await this.prisma.cards.delete({ where: { id } });
+    return "Deleted the Card Details";
   }
 
   async getLoginByName(website: string, user: JwtPayload): Promise<any> {
@@ -151,10 +156,10 @@ export class ManagerService {
       where: { userId, website },
     });
     for (const entry of info) {
-      entry.password = await this.decryptData(entry.password);
+      entry.password = await decrypt(entry.password);
     }
     if (!info || info.length === 0) {
-      throw new NotFoundException('No Entries');
+      return 'No Entries';
     }
     return info;
   }
@@ -163,13 +168,13 @@ export class ManagerService {
     const userId = user.sub;
     const cards = await this.prisma.cards.findMany({ where: { userId, bank } });
     for (const card of cards) {
-      card.cardNumber = await this.decryptCardData(card.cardNumber);
+      card.cardNumber = await decrypt(card.cardNumber);
     }
     for (const card of cards) {
-      card.cvv = await this.decryptCardData(card.cvv);
+      card.cvv = await decrypt(card.cvv);
     }
     if (!cards || cards.length === 0) {
-      throw new NotFoundException('No Entries');
+      return 'No Entries';
     }
     return cards;
   }
@@ -178,10 +183,10 @@ export class ManagerService {
     const userId = user.sub;
     const logins = await this.prisma.passwords.findMany({ where: { userId } });
     for (const entry of logins) {
-      entry.password = await this.decryptData(entry.password);
+      entry.password = await decrypt(entry.password);
     }
     if (!logins || logins.length === 0) {
-      throw new NotFoundException('No Entries');
+      return "No Entries";
     }
     return logins;
   }
@@ -190,83 +195,15 @@ export class ManagerService {
     const userId = user.sub;
     const cards = await this.prisma.cards.findMany({ where: { userId } });
     for (const card of cards) {
-      card.cardNumber = await this.decryptCardData(card.cardNumber);
+      card.cardNumber = await decrypt(card.cardNumber);
     }
     for (const card of cards) {
-      card.cvv = await this.decryptCardData(card.cvv);
+      card.cvv = await decrypt(card.cvv.toString());
     }
     if (!cards || cards.length === 0) {
-      throw new NotFoundException('No Entries');
+      return 'No Entries';
     }
     return cards;
-  }
-
-  async encryptData(field: string | number): Promise<string> {
-    const iv = randomBytes(16);
-    const key = process.env.ENCRYPTION_KEY;
-    const dataBuffer = Buffer.from(String(field), 'utf-8');
-    const cipher = createCipheriv('aes-256-ctr', key, iv);
-    const encryptedData = Buffer.concat([
-      cipher.update(dataBuffer),
-      cipher.final(),
-    ]);
-    const output = Buffer.concat([iv, encryptedData]);
-    return output.toString('hex');
-  }
-  async encryptCardData(field: number): Promise<number> {
-    const iv = randomBytes(16);
-    const key = process.env.ENCRYPTION_KEY;
-    const dataBuffer = Buffer.allocUnsafe(4);
-    dataBuffer.writeUint32BE(field, 0);
-    const cipher = createCipheriv('aes-256-ctr', key, iv);
-    const encryptedData = Buffer.concat([
-      cipher.update(dataBuffer),
-      cipher.final(),
-    ]);
-    const output = Buffer.concat([iv, encryptedData]);
-    return output.readUInt32BE();
-  }
-
-  async decryptData(field: string): Promise<string> {
-    const encryptedBuffer = Buffer.from(field, 'hex');
-    const iv = Buffer.alloc(16);
-    const key = process.env.ENCRYPTION_KEY;
-    const encryptedData = Buffer.alloc(encryptedBuffer.length - 16);
-
-    encryptedBuffer.copy(iv, 0, 0, 16);
-    encryptedBuffer.copy(encryptedData, 0, 16);
-
-    const decipher = createDecipheriv('aes-256-ctr', key, iv);
-    let decryptedDataBuffer = decipher.update(encryptedData);
-    decryptedDataBuffer = Buffer.concat([
-      decryptedDataBuffer,
-      decipher.final(),
-    ]);
-
-    return decryptedDataBuffer.toString('utf-8');
-  }
-
-  async decryptCardData(encryptedField: number): Promise<number> {
-    const encryptedBuffer = Buffer.allocUnsafe(4);
-    encryptedBuffer.writeUInt32BE(encryptedField, 0);
-  
-    // Manually extract the IV and encrypted data buffers
-    const iv = Buffer.allocUnsafe(16);
-    const encryptedData = Buffer.allocUnsafe(encryptedBuffer.length - 16);
-  
-    encryptedBuffer.copy(iv, 0, 0, 16);
-    encryptedBuffer.copy(encryptedData, 0, 16);
-  
-    const key = process.env.ENCRYPTION_KEY;
-  
-    const decipher = createDecipheriv('aes-256-ctr', key, iv);
-  
-    let decryptedDataBuffer = decipher.update(encryptedData);
-    decryptedDataBuffer = Buffer.concat([decryptedDataBuffer, decipher.final()]);
-  
-    const originalNumber = decryptedDataBuffer.readUInt32BE();
-  
-    return originalNumber;
   }
   
 }

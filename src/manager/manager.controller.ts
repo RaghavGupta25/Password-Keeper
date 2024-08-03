@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ManagerService } from './manager.service';
 import { AuthGuard } from 'src/guards/auth/auth.guard';
-import { loginInfoDto } from './dto/loginInfo.dto';
+import { LoginInfoDto } from './dto/loginInfo.dto';
 import { JwtPayload } from 'src/contracts/jwt-payload/jwt-payload.interface';
 
 @Controller('')
@@ -33,14 +33,14 @@ export class ManagerController {
   }
 
   @UseGuards(AuthGuard)
-  @Get('cards/:bank')
+  @Get('passwords/:websiteName')
   async getLoginByName(
-    @Body() loginInfo: loginInfoDto,
+    @Param("websiteName") websiteName:string,
     @Request() req,
   ): Promise<any> {
     const user: JwtPayload = req.user;
-    const website: string = loginInfo.website;
-    return this.managerService.getCardByName(website, user);
+    const website: string = websiteName;
+    return this.managerService.getLoginByName(website, user);
   }
   @UseGuards(AuthGuard)
   @Get('cards')
@@ -50,19 +50,19 @@ export class ManagerController {
   }
 
   @UseGuards(AuthGuard)
-  @Get('cards/:bank')
+  @Get('cards/:bankName')
   async getCardByName(
-    @Body() loginInfo: loginInfoDto,
+    @Param("bankName") bankName:string,
     @Request() req,
   ): Promise<any> {
     const user: JwtPayload = req.user;
-    const bank: string = loginInfo.bank;
+    const bank: string = bankName;
     return this.managerService.getCardByName(bank, user);
   }
 
   @UseGuards(AuthGuard)
   @Post('add')
-  async Create(@Body() loginInfo: loginInfoDto, @Request() req): Promise<any> {
+  async Create(@Body() loginInfo: LoginInfoDto, @Request() req): Promise<any> {
     const user: JwtPayload = req.user;
     if (loginInfo.loginType === 'password') {
       return this.managerService.createLogin(loginInfo, user);
@@ -71,10 +71,10 @@ export class ManagerController {
     }
   }
   @UseGuards(AuthGuard)
-  @Patch('password/:id')
+  @Patch('passwords/:id')
   async updateLogin(
     @Param('id') id: string,
-    @Body() loginInfo: loginInfoDto,
+    @Body() loginInfo: LoginInfoDto,
     @Request() req,
   ): Promise<any> {
     const user: JwtPayload = req.user;
@@ -82,10 +82,10 @@ export class ManagerController {
   }
 
   @UseGuards(AuthGuard)
-  @Patch('card/:id')
+  @Patch('cards/:id')
   async updateCardInfo(
     @Param('id') id: string,
-    @Body() loginInfo: loginInfoDto,
+    @Body() loginInfo: LoginInfoDto,
     @Request() req,
   ): Promise<any> {
     const user: JwtPayload = req.user;
@@ -93,14 +93,14 @@ export class ManagerController {
   }
 
   @UseGuards(AuthGuard)
-  @Delete('password/:id')
+  @Delete('passwords/:id')
   async deleteLogin(@Request() req, @Param('id') id: string): Promise<any> {
     const user: JwtPayload = req.user;
     return this.managerService.deleteLogin(id, user);
   }
 
   @UseGuards(AuthGuard)
-  @Delete('card/:id')
+  @Delete('cards/:id')
   async deleteCard(@Request() req, @Param('id') id: string): Promise<any> {
     const user: JwtPayload = req.user;
     return this.managerService.deleteCard(id, user);

@@ -1,10 +1,10 @@
-import {
+  import {
   BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { signInDto } from './dto/signIn.dto';
+import { SignInDto } from './dto/signIn.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,17 +15,19 @@ export class UserService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
   ) {}
-  async singUp(user: signInDto) {
+  async singUp(user: SignInDto) {
     const existingUser = await this.prisma.users.findUnique({
       where: { email: user.email },
     });
 
-    if (user.password !== user.confirmPassword) {
-      throw new BadRequestException('Master Password does not match');
-    }
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
+
+    if (user.password !== user.confirmPassword) {
+      throw new BadRequestException('Master Password does not match');
+    }
+
     user.password = await bcrypt.hash(user.password, 10);
 
     const newUser = await this.prisma.users.create({
@@ -38,7 +40,7 @@ export class UserService {
     return { user: newUser, token };
   }
 
-  async signIn(credentials: signInDto) {
+  async signIn(credentials: SignInDto) {
     const user = await this.prisma.users.findUnique({
       where: { email: credentials.email },
     });
