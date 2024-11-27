@@ -29,7 +29,7 @@ export class UserService {
     }
 
     user.password = await bcrypt.hash(user.password, 10);
-
+    user.confirmPassword=user.password;
     const newUser = await this.prisma.users.create({
       data: user,
     });

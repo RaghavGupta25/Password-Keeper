@@ -16,15 +16,14 @@ import { JwtPayload } from 'src/contracts/jwt-payload/jwt-payload.interface';
 
 @Controller('')
 export class ManagerController {
-  constructor(private readonly managerService: ManagerService) {}
+  constructor(private readonly managerService: ManagerService) { }
+
   @UseGuards(AuthGuard)
-  @Get()
-  async getAll(@Request() req): Promise<any> {
-    const user: JwtPayload = req.user;
-    const passes = this.managerService.getAllLogins(user);
-    const cards = this.managerService.getAllCards(user);
-    return { passes, cards };
+  @Get('auth/check')
+  async checkAuthStatus(@Request() req): Promise<boolean> {
+    return true;
   }
+  
   @UseGuards(AuthGuard)
   @Get('passwords')
   async getAllLogins(@Request() req): Promise<any> {
@@ -52,7 +51,7 @@ export class ManagerController {
   @UseGuards(AuthGuard)
   @Get('cards/:bankName')
   async getCardByName(
-    @Param("bankName") bankName:string,
+    @Param("bankName") bankName: string,
     @Request() req,
   ): Promise<any> {
     const user: JwtPayload = req.user;

@@ -13,7 +13,7 @@ import { Users } from '@prisma/client';
 
 @Controller('')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @Post('signup')
   async signUp(
@@ -48,6 +48,16 @@ export class UserController {
       res.status(200).send({ user: user });
     } catch (err: unknown) {
       throw new InternalServerErrorException(err);
+    }
+  }
+
+  @Post('signout')
+  async signOut(@Res() res: Response){
+    try{
+      res.cookie('jwt', '', { expires: new Date(0), httpOnly: true });
+      res.status(200).send({message: "logout successful"})
+    }catch(error){
+      res.status(500).json({error: "Error in logout"})
     }
   }
 }
