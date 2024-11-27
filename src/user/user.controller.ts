@@ -25,7 +25,6 @@ export class UserController {
         await this.userService.singUp(newUser);
 
       delete user.password;
-      delete user.confirmPassword;
       res.cookie('jwt', token, { httpOnly: true });
 
       res.status(201).send({ user: user });
@@ -41,7 +40,6 @@ export class UserController {
         await this.userService.signIn(credentials);
 
       delete user.password;
-      delete user.confirmPassword;
 
       res.cookie('jwt', token, { httpOnly: true });
 
