@@ -9,4 +9,4 @@ All the details are encrypted before storing in the database.
 ## Technologies Used
 * NestJs for logic
 * Prsima for ORM
-* Neon for database
+* Postgres for database
